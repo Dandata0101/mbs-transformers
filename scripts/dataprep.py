@@ -10,6 +10,7 @@ def prepare_and_split_data_grouped(df, target_column_name, identifier_columns, g
     
     # Separating out features, target, and identifiers
     X = df.drop(columns=[target_column_name] + identifier_columns)
+    feature_names = X.columns.tolist()   
     y = df[target_column_name]
     identifiers = df[identifier_columns]
     groups = df[group_column]
@@ -34,8 +35,10 @@ def prepare_and_split_data_grouped(df, target_column_name, identifier_columns, g
     if len(non_numeric_columns) > 0: # Check if there are non-numeric columns to concatenate
         X_train_scaled = pd.concat([X_train_scaled, X_train[non_numeric_columns]], axis=1)
         X_test_scaled = pd.concat([X_test_scaled, X_test[non_numeric_columns]], axis=1)
+    
+    feature_names = X.columns.tolist()    
 
     print('Transformation complete')
 
     # Updating return statement to include X_train_scaled and X_test_scaled
-    return X_train_scaled, X_test_scaled, y_train, y_test, identifiers_train, identifiers_test
+    return X,X_train,X_test, X_train_scaled, X_test_scaled, y_train, y_test, identifiers_train, identifiers_test,feature_names

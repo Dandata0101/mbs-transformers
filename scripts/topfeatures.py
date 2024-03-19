@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 def fit_and_plot_logistic_regression(X_train, X_test, y_train, y_test, feature_names, max_iter=1000, top_features=20, solver='saga', penalty='l2', tol=0.01):
     """
     Fits a Logistic Regression model on the numeric training data and plots the top N features based on their importance.
-    Now includes performance optimizations and retains numeric column selection within the function.
+    Now includes performance optimizations, retains numeric column selection within the function, and enhances visual output.
     
     Parameters:
     - X_train: Training feature DataFrame.
@@ -38,12 +38,22 @@ def fit_and_plot_logistic_regression(X_train, X_test, y_train, y_test, feature_n
     sorted_indices = np.argsort(coefficients)[::-1]
 
     print('Plot the top N features based on their importance')
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(15, 8))  # Larger figure size for better readability
     top_indices = sorted_indices[:top_features]
-    plt.bar(range(top_features), coefficients[top_indices], align='center')
-    plt.xticks(range(top_features), labels=np.array(feature_names_numeric)[top_indices], rotation=90)
-    plt.xlabel('Feature')
-    plt.ylabel('Absolute Coefficient Value')
-    plt.title(f'Top {top_features} Logistic Regression Coefficients for Numeric Features')
-    plt.tight_layout()
+    colors = plt.cm.viridis(coefficients[top_indices] / coefficients[top_indices].max())  # Apply color mapping for visual appeal
+    bars = plt.bar(range(top_features), coefficients[top_indices], align='center', color=colors)
+    
+    plt.xticks(range(top_features), labels=np.array(feature_names_numeric)[top_indices], rotation=45, fontsize=12)  # Improve label readability
+    plt.yticks(fontsize=12)
+    plt.xlabel('Feature', fontsize=14)
+    plt.ylabel('Absolute Coefficient Value', fontsize=14)
+    plt.title(f'Top {top_features} Logistic Regression Coefficients for Numeric Features', fontsize=16)
+    
+    # Annotate bars with their exact coefficient values for clarity
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2.0, height, f'{height:.2f}', ha='center', va='bottom', fontsize=10)
+
+    plt.tight_layout()  # Ensure everything fits without overlap
+    plt.grid(axis='y', linestyle='--', alpha=0.7)  # Add gridlines for easier interpretation of bar heights
     plt.show()

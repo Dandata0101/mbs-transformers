@@ -1,23 +1,27 @@
-# Required library imports
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import ipywidgets as widgets
 from IPython.display import display
 from ipywidgets import interact
+import mplcursors
 
+sns.set_theme(style="whitegrid")  # Apply Seaborn theme
 
-# Function to plot model loss
 def plot_model_loss(loss_history, val_loss_history=None, title='Model Loss', xlabel='Epoch', ylabel='Loss'):
     plt.figure(figsize=(10, 6))
-    plt.plot(loss_history, label='Train Loss')
+    plt.plot(loss_history, label='Train Loss', marker='o')
     if val_loss_history is not None:
-        plt.plot(val_loss_history, label='Validation Loss')
+        plt.plot(val_loss_history, label='Validation Loss', marker='s')
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
     plt.tight_layout()
+
+    cursor = mplcursors.cursor(hover=True)
+    cursor.connect("add", lambda sel: sel.annotation.set_text(
+        f"Epoch: {sel.target.index + 1}\nLoss: {sel.target[1]:.4f}"))
     plt.show()
 
 # Function to plot confusion matrix

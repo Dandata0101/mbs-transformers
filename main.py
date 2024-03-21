@@ -1,10 +1,10 @@
-from flask import Flask, request, Response
+from flask import Flask, render_template
 import os
-from waitress import serve
 import subprocess
+import signal
+import sys
+from waitress import serve
 from dotenv import load_dotenv
-import requests
-from flask import Flask, request, render_template, jsonify, session, url_for, flash, redirect,send_file
 
 # Set matplotlib to use 'Agg' backend before any other matplotlib imports
 import matplotlib
@@ -14,28 +14,32 @@ matplotlib.use('Agg')
 load_dotenv()
 
 app = Flask(__name__)
+tensorboard_process = None
 
 def start_tensorboard(logdir, port=6006):
-    """
-    Start TensorBoard in a subprocess, making it accessible over the network.
-    :param logdir: Directory where TensorBoard will read logs.
-    :param port: Port on which TensorBoard will run.
-    """
+    global tensorboard_process
     command = ['tensorboard', '--logdir', logdir, '--port', str(port), '--bind_all']
-    subprocess.Popen(command)
+    tensorboard_process = subprocess.Popen(command)
+    return port
 
 @app.route('/')
 def show_tensorboard():
-    # Dynamically generate the TensorBoard URL based on its port
-    tensorboard_port = 6006  # Ensure this matches the port used in start_tensorboard
-    tensorboard_url = f'http://localhost:6006'
+    tensorboard_port = 6006  # This should be set to the actual dynamic port if changed
+    tensorboard_url = f'http://localhost:{tensorboard_port}'
     return render_template('tensor.html', tensorboard_url=tensorboard_url)
 
+def graceful_exit(signum, frame):
+    if tensorboard_process:
+        tensorboard_process.terminate()
+        tensorboard_process.wait()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, graceful_exit)
+signal.signal(signal.SIGINT, graceful_exit)
+
 if __name__ == '__main__':
-    # Initialize and start TensorBoard
     logdir = 'logs/fit'
-    tensorboard_port = 6006  # This can be any port that's free on your system
-    start_tensorboard(logdir, tensorboard_port)
+    tensorboard_port = start_tensorboard(logdir, 6006)  # This can be made dynamic
 
     # Configure the Flask app's debug mode based on the FLASK_DEBUG environment variable
     app.debug = os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1']
@@ -47,4 +51,7 @@ if __name__ == '__main__':
     print(f"Running on http://localhost:{port}")
 
     # Serve the Flask app with Waitress on the specified host and port
-    serve(app, host="0.0.0.0", port=port)
+    try:
+        serve(app, host="0.0.0.0", port=port)
+    finally:
+        graceful_exit(None, None)

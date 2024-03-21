@@ -43,5 +43,8 @@ if __name__ == '__main__':
     # Get the port number from the PORT environment variable for the Flask app
     port = int(os.getenv('PORT', 8000))
 
+    # Print the local URL where the Flask app will be accessible
+    print(f"Running on http://localhost:{port}")
+
     # Serve the Flask app with Waitress on the specified host and port
     serve(app, host="0.0.0.0", port=port)

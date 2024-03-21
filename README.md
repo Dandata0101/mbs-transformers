@@ -1,4 +1,4 @@
-# MBS Stock trading signal Project
+# MBS Amex Transformer Model— Predicting Customer Credit Default
 [![Author - DanRamirez](https://img.shields.io/badge/Author-DanRamirez-2ea44f?style=for-the-badge)](https://github.com/Dandata0101)
 
 # Documentation Pending

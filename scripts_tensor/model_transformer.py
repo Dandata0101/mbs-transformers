@@ -66,7 +66,11 @@ def log_feature_importance_to_tensorboard(feature_names, importances, logdir, st
     with tf.summary.create_file_writer(logdir).as_default():
         tf.summary.image("Feature Importances", image, step=step)
 
-def create_model_with_transformer_and_train(X_train, y_train, X_test, y_test):
+def create_model_with_transformer_and_train(X_train, y_train, X_test, y_test,
+                                            num_heads=2, key_dim=2, dropout_rate=0.1,
+                                            dense_activation='relu', learning_rate=0.001,
+                                            l2_reg_strength=None, batch_size=128,
+                                            epochs=5, patience=5):
     # Ensure reproducibility
     tf.random.set_seed(42)
     np.random.seed(42)
@@ -93,22 +97,31 @@ def create_model_with_transformer_and_train(X_train, y_train, X_test, y_test):
     print('transformer_layer build')
     input_shape = (X_train_reshaped.shape[1], X_train_reshaped.shape[2])
     inputs = layers.Input(shape=input_shape)
-    transformer_layer = layers.MultiHeadAttention(num_heads=2, key_dim=2)(inputs, inputs)
-    transformer_layer = layers.Dropout(0.1)(transformer_layer)
+    transformer_layer = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)(inputs, inputs)
+    transformer_layer = layers.Dropout(dropout_rate)(transformer_layer)
     transformer_layer = layers.LayerNormalization(epsilon=1e-6)(transformer_layer)
     transformer_output = layers.Flatten()(transformer_layer)
-    x = layers.Dense(32, activation='relu')(transformer_output)
+    
+    # Apply L2 regularization if specified
+    if l2_reg_strength:
+        kernel_regularizer = tf.keras.regularizers.l2(l2_reg_strength)
+    else:
+        kernel_regularizer = None
+    
+    x = layers.Dense(32, activation=dense_activation, kernel_regularizer=kernel_regularizer)(transformer_output)
     outputs = layers.Dense(1, activation='sigmoid')(x)
     model = models.Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
     print('Configure callbacks')
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, write_graph=True)
-    early_stopping = callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    early_stopping = callbacks.EarlyStopping(monitor='val_loss', patience=patience, restore_best_weights=True)
 
     print('Train the model')
-    history = model.fit(X_train_reshaped, y_train, epochs=5, batch_size=128, validation_split=0.2, callbacks=[early_stopping, tensorboard_callback])
+    history = model.fit(X_train_reshaped, y_train, epochs=epochs, batch_size=batch_size,
+                        validation_split=0.2, callbacks=[early_stopping, tensorboard_callback])
 
     print('Evaluate the model')
     y_pred_prob = model.predict(X_test_reshaped)
